@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 class GenerateScoringRequest(BaseModel):
     session_id: str
+    product_id: Optional[str] = None  # if None, all criteria are used
 
 
 class GenerateScoringResponse(BaseModel):

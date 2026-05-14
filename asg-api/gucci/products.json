@@ -1,0 +1,17 @@
+{
+  "gucci_marmont_bag": {
+    "name": "Gucci Marmont Bag",
+    "description": "Bolso de cuero acolchado con doble G y cadena dorada",
+    "criteria": ["herrajes", "etiqueta", "costuras", "interior", "cierre"]
+  },
+  "gucci_gg_supreme_tote": {
+    "name": "Gucci GG Supreme Tote",
+    "description": "Tote bag con patrón GG Supreme y manijas de cuero",
+    "criteria": ["gg_canvas", "herrajes", "etiqueta", "costuras", "interior"]
+  },
+  "gucci_gg_belt": {
+    "name": "Gucci GG Belt",
+    "description": "Cinturón con patrón GG Canvas y hebilla metálica",
+    "criteria": ["gg_canvas", "herrajes", "etiqueta", "costuras"]
+  }
+}

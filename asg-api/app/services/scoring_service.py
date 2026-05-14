@@ -6,6 +6,8 @@ Each criterion is scored concurrently via asyncio.gather + asyncio.to_thread
 """
 
 import asyncio
+import json
+import pathlib
 from pathlib import Path
 from typing import Optional
 
@@ -13,6 +15,19 @@ from app.clients.storage_client import StorageClient
 from app.clients.vision_client import VisionClient
 from app.repositories.scoring_repo import ScoringRepo
 from app.repositories.session_repo import SessionRepo
+
+PRODUCTS_PATH = pathlib.Path(__file__).parent.parent.parent / "gucci" / "products.json"
+
+
+def _active_criteria(all_criteria: list, product_id: Optional[str]) -> list:
+    if not product_id:
+        return all_criteria
+    try:
+        products = json.loads(PRODUCTS_PATH.read_text())
+        active_keys = set(products[product_id]["criteria"])
+        return [c for c in all_criteria if c["key"] in active_keys]
+    except (KeyError, FileNotFoundError):
+        return all_criteria
 
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -40,29 +55,30 @@ class ScoringService:
         self.storage_client = storage_client
         self.criteria = criteria
 
-    async def start_scoring(self, session_id: str) -> Optional[dict]:
+    async def start_scoring(self, session_id: str, product_id: Optional[str] = None) -> Optional[dict]:
         session = self.session_repo.get(session_id)
         if not session:
             return None
         self.scoring_repo.create(session_id)
         # Fire and forget — runs in background while client polls /scoring_status/
-        asyncio.create_task(self._run_scoring(session_id))
+        asyncio.create_task(self._run_scoring(session_id, product_id))
         return {"session_id": session_id, "status": "pending"}
 
     def get_status(self, session_id: str) -> Optional[dict]:
         return self.scoring_repo.get(session_id)
 
-    async def _run_scoring(self, session_id: str):
+    async def _run_scoring(self, session_id: str, product_id: Optional[str] = None):
         self.scoring_repo.update(session_id, status="processing")
         try:
+            active = _active_criteria(self.criteria, product_id)
             # Ollama processes requests sequentially — run criteria one by one
             # Gemini supports parallel requests — use asyncio.gather
             if getattr(self.vision_client, "concurrent", True):
-                tasks = [self._score_criterion(session_id, c) for c in self.criteria]
+                tasks = [self._score_criterion(session_id, c) for c in active]
                 criteria_results = await asyncio.gather(*tasks)
             else:
                 criteria_results = []
-                for c in self.criteria:
+                for c in active:
                     criteria_results.append(await self._score_criterion(session_id, c))
 
             found = [r for r in criteria_results if r["image_found"]]

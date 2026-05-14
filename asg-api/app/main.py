@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api import sessions, scoring, internal
+from app.api import sessions, scoring, internal, admin, products
 
 app = FastAPI(
     title="ASG — Authenticity Score Generator",
@@ -11,6 +11,8 @@ app = FastAPI(
 app.include_router(sessions.router)
 app.include_router(scoring.router)
 app.include_router(internal.router)
+app.include_router(admin.router)
+app.include_router(products.router)
 
 
 @app.get("/health", tags=["meta"])
