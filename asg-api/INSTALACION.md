@@ -120,13 +120,49 @@ Copiar el archivo de configuración de ejemplo:
 cp .env.example .env
 ```
 
-El archivo `.env` ya viene preconfigurado para desarrollo local. No es necesario modificar nada para empezar.
+Abrir el archivo `.env` recién creado con cualquier editor de texto. Su contenido es:
 
-> Para usar Gemini en lugar de Ollama (modo producción), editar `.env` y completar:
-> ```
-> BACKEND=gemini
-> GEMINI_API_KEY=tu_api_key_aqui
-> ```
+```env
+# Vision backend: "ollama" (local) o "gemini" (producción)
+BACKEND=ollama
+
+# Ollama settings
+OLLAMA_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=llava:7b
+
+# Gemini settings (solo necesario si BACKEND=gemini)
+GEMINI_API_KEY=
+
+# Storage
+STORAGE_TYPE=local
+LOCAL_STORAGE_PATH=/tmp/asg_storage
+API_BASE_URL=http://localhost:8000
+```
+
+### Variables que sí o sí hay que revisar
+
+**`OLLAMA_URL`** — indica dónde está corriendo Ollama.
+
+| Situación | Valor correcto |
+|-----------|---------------|
+| Ollama corre en tu Mac (lo más común) | `http://host.docker.internal:11434` |
+| Ollama corre dentro de Docker Compose | `http://ollama:11434` |
+
+En casi todos los casos usarás `http://host.docker.internal:11434`. Si al lanzar el análisis ves el error *"No se pudo conectar con Ollama"*, es que esta URL está mal.
+
+**`OLLAMA_MODEL`** — modelo de visión a usar. Dejarlo en `llava:7b` a menos que hayas descargado otro modelo (ej: `moondream`).
+
+### Variables opcionales
+
+**`BACKEND`** — cambiar a `gemini` solo si querés usar la API de Google en lugar de Ollama local. En ese caso también completar `GEMINI_API_KEY`.
+
+**`GEMINI_API_KEY`** — clave de la API de Google Gemini. Obtenerla gratis en [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey). Solo necesaria si `BACKEND=gemini`.
+
+**`LOCAL_STORAGE_PATH`** — carpeta donde se guardan las imágenes subidas. El valor por defecto `/tmp/asg_storage` funciona en Mac y Linux. Podés cambiarlo a cualquier ruta, por ejemplo `/Users/tu_usuario/asg_storage`.
+
+**`API_BASE_URL`** — URL base de la API. Dejar en `http://localhost:8000` para desarrollo local.
+
+> **Importante:** el archivo `.env` nunca debe subirse a GitHub ya que puede contener claves privadas. Ya está excluido en el `.gitignore` del proyecto.
 
 ---
 
