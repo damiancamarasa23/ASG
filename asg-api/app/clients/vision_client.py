@@ -62,6 +62,9 @@ class VisionClient(ABC):
 
 
 class OllamaClient(VisionClient):
+    # Ollama processes requests sequentially — allow enough time for all to queue
+    concurrent = False  # signals scoring_service to run criteria sequentially
+
     def __init__(self, base_url: str, model: str):
         self.url = f"{base_url}/api/generate"
         self.model = model
@@ -76,7 +79,7 @@ class OllamaClient(VisionClient):
             "options": {"temperature": 0.1},
         }
         try:
-            response = requests.post(self.url, json=payload, timeout=120)
+            response = requests.post(self.url, json=payload, timeout=300)
         except requests.exceptions.ConnectionError:
             return {
                 "score": 0,

@@ -55,8 +55,15 @@ class ScoringService:
     async def _run_scoring(self, session_id: str):
         self.scoring_repo.update(session_id, status="processing")
         try:
-            tasks = [self._score_criterion(session_id, c) for c in self.criteria]
-            criteria_results = await asyncio.gather(*tasks)
+            # Ollama processes requests sequentially — run criteria one by one
+            # Gemini supports parallel requests — use asyncio.gather
+            if getattr(self.vision_client, "concurrent", True):
+                tasks = [self._score_criterion(session_id, c) for c in self.criteria]
+                criteria_results = await asyncio.gather(*tasks)
+            else:
+                criteria_results = []
+                for c in self.criteria:
+                    criteria_results.append(await self._score_criterion(session_id, c))
 
             found = [r for r in criteria_results if r["image_found"]]
             total_weight = sum(r["weight"] for r in found)
