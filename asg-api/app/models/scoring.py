@@ -21,10 +21,17 @@ class CriterionScore(BaseModel):
     image_found: bool
 
 
+class CoherenceResult(BaseModel):
+    score: int
+    flag: str  # ok | advertencia | sospechoso
+    observaciones: str
+
+
 class ScoringStatusResponse(BaseModel):
     session_id: str
     status: str
     final_score: Optional[int] = None
     criteria: Optional[list[CriterionScore]] = None
+    coherence: Optional[CoherenceResult] = None
     overall_observations: Optional[str] = None
     error: Optional[str] = None

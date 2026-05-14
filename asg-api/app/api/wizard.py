@@ -471,7 +471,16 @@ async function pollStatus() {{
 
   const verdict = document.getElementById('verdict');
   verdict.style.display = 'block';
-  if (score >= 75) {{
+
+  // Coherence flag overrides verdict if suspicious
+  const coherence = data.coherence;
+  if (coherence && coherence.flag === 'sospechoso') {{
+    verdict.className = 'verdict low';
+    verdict.innerHTML = `✗ Posible fraude — las fotos no parecen ser del mismo producto<br><small style="font-weight:400">${{coherence.observaciones}}</small>`;
+  }} else if (coherence && coherence.flag === 'advertencia') {{
+    verdict.className = 'verdict medium';
+    verdict.innerHTML = `⚠ Coherencia dudosa entre fotos (score: ${{coherence.score}})<br><small style="font-weight:400">${{coherence.observaciones}}</small>`;
+  }} else if (score >= 75) {{
     verdict.className = 'verdict high';
     verdict.textContent = '✓ Alta probabilidad de autenticidad';
   }} else if (score >= 50) {{
