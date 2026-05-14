@@ -4,20 +4,21 @@ import pathlib
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 
+from gucci.criteria import GUCCI_CRITERIA
+
 PRODUCTS_PATH = pathlib.Path(__file__).parent.parent.parent / "gucci" / "products.json"
-CRITERIA_PATH = pathlib.Path(__file__).parent.parent.parent / "gucci" / "criteria.py"
 
 router = APIRouter(tags=["wizard"])
 
-CRITERIA_META = {
-    "gg_canvas":  {"label": "Patrón GG Canvas",              "hint": "Fotografiá el frente del producto mostrando el patrón completo."},
-    "herrajes":   {"label": "Herrajes / Hardware",            "hint": "Primer plano de cierres, argollas o hebillas metálicas."},
-    "etiqueta":   {"label": "Etiqueta Interior",              "hint": "Fotografiá la etiqueta interior con el número serial visible."},
-    "costuras":   {"label": "Costuras",                       "hint": "Detalle lateral de las costuras, bien iluminado."},
-    "interior":   {"label": "Interior / Forro",               "hint": "Abrí el producto y fotografiá el interior completo."},
-    "cierre":     {"label": "Sistema de Cierre / Solapa",     "hint": "Fotografiá el mecanismo de cierre principal."},
-    "challenge":  {"label": "Challenge Anti-Fraude",          "hint": "Producto junto a un papel con el código de sesión escrito a mano."},
-}
+CRITERIA_META = {c["key"]: {"label": c["label"], "filename": c["filename"], "hint": {
+    "gg_canvas": "Fotografiá el frente del producto mostrando el patrón completo.",
+    "herrajes":  "Primer plano de cierres, argollas o hebillas metálicas.",
+    "etiqueta":  "Fotografiá la etiqueta interior con el número serial visible.",
+    "costuras":  "Detalle lateral de las costuras, bien iluminado.",
+    "interior":  "Abrí el producto y fotografiá el interior completo.",
+    "cierre":    "Fotografiá el mecanismo de cierre principal.",
+    "challenge": "Producto junto a un papel con el código de sesión escrito a mano.",
+}.get(c["key"], "")} for c in GUCCI_CRITERIA}
 
 
 @router.get("/wizard", response_class=HTMLResponse)
@@ -214,7 +215,7 @@ def wizard_page():
 
         <img class="preview-img" id="preview-img">
 
-        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+        <div class="upload-area" id="upload-area">
           <div class="upload-icon">📷</div>
           <div class="upload-text">
             <strong>Hacé clic para seleccionar</strong><br>o arrastrá la foto aquí
@@ -394,7 +395,7 @@ async function uploadAndNext() {{
 
   // 2. Get upload URL
   const key = activeCriteria[currentStep];
-  const filename = `${{String(currentStep + 1).padStart(2,'0')}}_${{key}}.jpg`;
+  const filename = `${{CRITERIA_META[key].filename}}.jpg`;
 
   const urlRes = await fetch('/get_upload_url/', {{
     method: 'POST',

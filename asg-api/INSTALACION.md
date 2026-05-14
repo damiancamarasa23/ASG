@@ -98,17 +98,12 @@ ollama list
 
 ## Paso 4 — Obtener el código
 
-Si tenés acceso al repositorio:
-
 ```bash
-git clone <url-del-repositorio>
+git clone git@github.com:damiancamarasa23/ASG.git
+cd ASG
+git checkout poc
 cd asg-api
 ```
-
-Si recibiste el código como archivo ZIP:
-
-1. Descomprimir el archivo
-2. Abrir una terminal en la carpeta `asg-api`
 
 ---
 
@@ -213,115 +208,55 @@ Respuesta esperada:
 
 ---
 
-## Paso 8 — Explorar la API
+## Paso 8 — Verificar que todo funciona
 
-La API incluye documentación interactiva automática. Abrir en el navegador:
-
-```
-http://localhost:8000/docs
+```bash
+curl http://localhost:8000/health
 ```
 
-Desde ahí podés ver todos los endpoints disponibles, sus parámetros y probarlos directamente sin escribir código.
+Respuesta esperada: `{"status": "ok"}`
 
 ---
 
-## Flujo completo de uso
+## Interfaces disponibles
 
-El flujo para analizar un producto tiene 5 pasos:
+Una vez levantada la API, tenés tres interfaces:
 
-```
-1. Crear sesión          POST /create_session/
-2. Obtener URL de subida POST /get_upload_url/       (una vez por foto)
-3. Subir foto            PUT  <url_obtenida>          (una vez por foto)
-4. Confirmar subida      POST /confirm_upload/        (una vez por foto)
-5. Lanzar análisis       POST /generate_scoring/
-6. Consultar resultado   GET  /scoring_status/{id}    (polling cada 3s)
-```
+| URL | Qué es |
+|-----|--------|
+| `http://localhost:8000/wizard` | **Wizard de autenticación** — subís fotos paso a paso y obtenés el score. Empezá por acá. |
+| `http://localhost:8000/admin` | **Configuración de productos** — define qué fotos se piden por modelo de producto |
+| `http://localhost:8000/docs` | **Documentación interactiva** de todos los endpoints de la API |
 
-### Ejemplo paso a paso con curl
+---
 
-**1. Crear sesión:**
-```bash
-curl -X POST http://localhost:8000/create_session/ \
-  -H "Content-Type: application/json" \
-  -d '{"consumer_platform_id": "mi_plataforma", "user_id": "usuario_001", "brand": "gucci"}'
-```
-Respuesta:
+## Cómo hacer una autenticación (Wizard)
+
+1. Abrir `http://localhost:8000/wizard`
+2. Seleccionar marca y modelo del producto
+3. Por cada foto requerida: seleccionar el archivo → el sistema valida calidad automáticamente → si pasa, continuar a la siguiente
+4. Al subir la última foto, el análisis se lanza automáticamente
+5. Esperar el resultado (puede tardar varios minutos con Ollama local)
+
+> **Nota sobre tiempos con Ollama local:** el modelo `llava:7b` analiza las fotos de a una en la CPU. Cada foto tarda ~50 segundos, por lo que una sesión de 4-6 fotos puede tardar 4-6 minutos. Esto es esperable en desarrollo local.
+
+---
+
+## Configurar modelos de producto (Admin)
+
+En `http://localhost:8000/admin` podés ver los modelos de producto cargados y activar o desactivar qué criterios (fotos) aplican a cada uno. Los cambios se guardan en `gucci/products.json` y se aplican inmediatamente sin reiniciar.
+
+Para agregar un nuevo modelo, editar directamente el archivo `gucci/products.json`:
+
 ```json
-{"session_id": "A3F9B21C", "status": "created", "created_at": "..."}
-```
-
-**2. Obtener URL para subir una foto:**
-```bash
-curl -X POST http://localhost:8000/get_upload_url/ \
-  -H "Content-Type: application/json" \
-  -d '{"session_id": "A3F9B21C", "filename": "01_gg_canvas.jpg"}'
-```
-Respuesta:
-```json
-{"upload_url": "http://localhost:8000/internal/upload/A3F9B21C/01_gg_canvas.jpg", "filename": "01_gg_canvas.jpg"}
-```
-
-**3. Subir la foto:**
-```bash
-curl -X PUT http://localhost:8000/internal/upload/A3F9B21C/01_gg_canvas.jpg \
-  --data-binary @/ruta/a/tu/foto.jpg
-```
-
-**4. Confirmar subida:**
-```bash
-curl -X POST http://localhost:8000/confirm_upload/ \
-  -H "Content-Type: application/json" \
-  -d '{"session_id": "A3F9B21C", "filename": "01_gg_canvas.jpg"}'
-```
-
-**5. Lanzar análisis** (después de subir todas las fotos):
-```bash
-curl -X POST http://localhost:8000/generate_scoring/ \
-  -H "Content-Type: application/json" \
-  -d '{"session_id": "A3F9B21C"}'
-```
-Respuesta inmediata:
-```json
-{"session_id": "A3F9B21C", "status": "pending"}
-```
-
-**6. Consultar resultado** (repetir hasta que `status` sea `completed`):
-```bash
-curl http://localhost:8000/scoring_status/A3F9B21C
-```
-Respuesta cuando termina:
-```json
-{
-  "session_id": "A3F9B21C",
-  "status": "completed",
-  "final_score": 84,
-  "criteria": [
-    {"key": "gg_canvas", "label": "Patrón GG Canvas", "score": 87, "weight": 0.20, "image_found": true, "observaciones": "..."},
-    ...
-  ]
+"gucci_nuevo_modelo": {
+  "name": "Nombre del modelo",
+  "description": "Descripción breve",
+  "criteria": ["gg_canvas", "herrajes", "etiqueta", "costuras"]
 }
 ```
 
----
-
-## Fotos requeridas
-
-El sistema evalúa hasta 7 fotos por producto. Nombrarlas exactamente así:
-
-| Archivo | Qué fotografiar |
-|---------|----------------|
-| `01_gg_canvas.jpg` | Patrón GG Canvas (frente del producto) |
-| `02_herrajes.jpg` | Herrajes, cierres y argollas (primer plano) |
-| `03_etiqueta.jpg` | Etiqueta interior con número serial |
-| `04_costuras.jpg` | Detalle de costuras (vista lateral) |
-| `05_interior.jpg` | Interior / forro del producto |
-| `06_cierre.jpg` | Sistema de cierre principal |
-| `07_challenge.jpg` | Foto anti-fraude: producto junto a código de sesión escrito en papel |
-
-Formatos aceptados: `.jpg`, `.jpeg`, `.png`, `.webp`
-
-> No es obligatorio subir todas las fotos. El score se recalcula sobre las fotos disponibles.
+Los criterios disponibles son: `gg_canvas`, `herrajes`, `etiqueta`, `costuras`, `interior`, `cierre`, `challenge`.
 
 ---
 
@@ -345,6 +280,9 @@ Ollama no está corriendo. Ejecutar `ollama serve` en una terminal.
 
 ### El scoring queda en estado `pending` indefinidamente
 El modelo `llava:7b` no está descargado. Verificar con `ollama list` y si no aparece, correr `ollama pull llava:7b`.
+
+### El wizard no carga o muestra error 500
+Revisar los logs del container: `docker logs asg-api-api-1 --tail 30`
 
 ### Puerto 8000 ocupado
 Otro proceso usa ese puerto. Cambiar en `docker-compose.yml`:
@@ -377,7 +315,8 @@ asg-api/
 │   └── repositories/        ← persistencia (JSON local → DynamoDB en producción)
 │
 └── gucci/
-    └── criteria.py          ← criterios y prompts de autenticación Gucci
+    ├── criteria.py          ← criterios y prompts de autenticación Gucci
+    └── products.json        ← modelos de producto y criterios activos por modelo
 ```
 
 ---
