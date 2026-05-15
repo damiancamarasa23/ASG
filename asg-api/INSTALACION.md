@@ -13,6 +13,20 @@ Esta guía cubre la instalación completa del entorno de desarrollo local, donde
 
 ---
 
+## Capacidades y limitaciones conocidas del entorno local
+
+| Feature | Con Ollama local | Con Gemini (producción) |
+|---------|-----------------|------------------------|
+| Análisis por criterio (GG Canvas, herrajes, etc.) | ✅ Funciona | ✅ Funciona |
+| Validación de calidad de imagen (blur, exposición) | ✅ Funciona | ✅ Funciona |
+| Verificación de coherencia entre fotos | ⚠️ Básica — detecta diferencias muy obvias (ej: cartera vs zapatilla) pero puede no detectar diferencias sutiles entre productos similares | ✅ Confiable |
+| Velocidad de análisis | ~50s por foto (CPU) | ~2-3s por foto (paralelo) |
+| Costo | Sin costo | ~$0.008 por sesión |
+
+> La verificación de coherencia entre fotos está diseñada para detectar intentos de fraude donde se mezclan fotos de distintos productos. Con `llava:7b` local funciona para casos obvios. Para uso en producción se recomienda Gemini, que tiene mayor capacidad de razonamiento visual.
+
+---
+
 ## Herramientas necesarias
 
 | Herramienta | Para qué sirve | Cómo instalar |
